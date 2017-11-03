@@ -42,9 +42,26 @@ $ npm start
 
 ## Usage
 
+### Browser
 Include three.xr.js &amp; aframe-xr after A-frame (For now, a custom version. Soon an official version):
 ```html
 <script src="../../../vendor/aframe-v0.7.1.js"></script>
 <script src='https://cdn.jsdelivr.net/npm/three.xr.js/dist/three.xr.js'></script>
-<script src='../../../dist/aframe-xr.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/aframe-xr/dist/aframe-xr.js'></script>
+```
+
+#### npm
+
+Install via npm:
+
+```bash
+npm install aframe-xr
+```
+
+Then require and use.
+
+```js
+require('aframe');
+require('three.xr.js');
+require('aframe-xr');
 ```
