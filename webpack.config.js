@@ -7,7 +7,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 module.exports = {
-  entry: './index.js',
+  entry: './src/index.js',
   output: {
     path: path.join(__dirname, 'dist'),
     filename: 'aframe-xr.js'
@@ -19,6 +19,9 @@ module.exports = {
   },
   plugins: PLUGINS,
   devServer: {
+    publicPath: '/dist',
+    contentBase: [path.resolve(__dirname)],
+    host: '0.0.0.0',
     disableHostCheck: true
   }
 };

@@ -3,20 +3,7 @@
 [![Version](http://img.shields.io/npm/v/aframe-xr.svg?style=flat-square)](https://npmjs.org/package/aframe-xr)
 [![License](http://img.shields.io/npm/l/aframe-xr.svg?style=flat-square)](https://npmjs.org/package/aframe-xr)
 
-System to build [WebXR](https://github.com/mozilla/webxr-api) experiences with [A-frame](https://github.com/aframevr/aframe)
-
-## System configuration
-
-```html
-<a-scene xr="reality: vr">
-  <!-- ... -->
-</a-scene>
-```
-
-| Property                        | Default | Description                                        |
-|---------------------------------|---------|----------------------------------------------------|
-| reality                          | ar   | [`ar`, `vr`]                                         |
-
+System &amp; components to build [WebXR](https://github.com/mozilla/webxr-api) experiences with [A-frame](https://github.com/aframevr/aframe)
 
 ## Running the examples
 <a href="https://docs.npmjs.com/getting-started/installing-node">Install npm</a> and then run the following:
@@ -40,14 +27,46 @@ $ npm start
   - HTC Vive / Oculus Rift: [Firefox](https://webvr.rocks/firefox)
   - Windows Mixed Reality: [Microsoft Edge](https://webvr.rocks/microsoft_edge)
 
+## Configuration
+
+```html
+<a-scene>
+  <a-entity xr="ar: true; vr: false; magicWindow: false"></a-entity>
+  <!-- ... -->
+</a-scene>
+```
+
+## Documentation
+
+### xr System
+
+| Property                        | Default | Description                                          |
+|---------------------------------|---------|------------------------------------------------------|
+| AR_AUTOSTART                    | true    | Start AR if is the unique display available          |
+
+### xr Component
+
+| Property                        | Default | Description                                          |
+|---------------------------------|---------|------------------------------------------------------|
+| ar                              | true    | If the entity is visible on AR mode                  |
+| magicWindow                     | true    | If the entity is visible on magic window mode        |
+| vr                              | true    | If the entity is visible on VR mode                  |
+
+### ar-mode-ui Component
+
+Based on the [vr-mode-ui](https://github.com/aframevr/aframe/blob/v0.7.0/src/components/scene/vr-mode-ui.js) component
+
+| Property                        | Default | Description                                          |
+|---------------------------------|---------|------------------------------------------------------|
+| enabled                         | true    | Whether or not to display UI related to entering AR. |
+
 ## Usage
 
 ### Browser
 Include three.xr.js &amp; aframe-xr after A-frame (For now, a custom version. Soon an official version):
 ```html
 <script src="../../../vendor/aframe-v0.7.1.js"></script>
-<script src='https://cdn.jsdelivr.net/npm/three.xr.js/dist/three.xr.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/aframe-xr/dist/aframe-xr.js'></script>
+<script src='aframe-xr.js'></script>
 ```
 
 #### npm
@@ -62,6 +81,5 @@ Then require and use.
 
 ```js
 require('aframe');
-require('three.xr.js');
 require('aframe-xr');
 ```
