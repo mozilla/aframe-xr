@@ -6,173 +6,39 @@
     <script>window.debug = true;</script>
     <script src='../../../vendor/aframe-v0.7.1.js'></script>
     <script src='../../../dist/aframe-xr.js'></script>
-    <script>
-        AFRAME.registerComponent('hit-test', {
-        init: function () {
-          if (!this.el.isScene) {
-            console.warn('Fog component can only be applied to <a-scene>');
-            return;
-          }
-          this.tapData = null;
-          // an array of info that we'll use in _handleFrame to update the nodes using anchors
-          this.anchoredNodes = [] // { XRAnchorOffset, Three.js Object3D }
-
-          this.bindMethods();
-          this.addDOMEls();
-          this.scene = document.querySelector('a-scene');
-          this.scene.addEventListener('xrInitialized', this.xrInitialized);
-          this.scene.addEventListener('realityChanged', this.realityChanged);
-        },
-        addDOMEls: function () {
-          var title = document.createElement('div');
-          title.style.position = 'absolute';
-          title.style.top = '30px';
-          title.style.fontFamily = 'Arial, Helvetica, sans-serif';
-          title.style.fontSize = '16px';
-          title.style.fontWeight = 'bold';
-          title.style.zIndex = 10;
-          title.style.width = '100%';
-          title.style.textAlign = 'center';
-          title.innerHTML = 'Find anchors by searching on tap events.';
-          document.body.appendChild(title);
-
-          this.alertMessage = document.createElement('div');
-          this.alertMessage.style.position = 'absolute';
-          this.alertMessage.style.bottom = '50px';
-          this.alertMessage.style.fontFamily = 'Arial, Helvetica, sans-serif';
-          this.alertMessage.style.fontSize = '24px';
-          this.alertMessage.style.fontWeight = 'bold';
-          this.alertMessage.style.zIndex = 10;
-          this.alertMessage.style.width = '100%';
-          this.alertMessage.style.textAlign = 'center';
-          document.body.appendChild(this.alertMessage);
-        },
-        bindMethods: function (){
-          this.xrInitialized = this.xrInitialized.bind(this);
-          this.realityChanged = this.realityChanged.bind(this);
-          this.updateFrame = this.updateFrame.bind(this);
-          this.onTouchStart = this.onTouchStart.bind(this);
-        },
-        xrInitialized: function () {
-          this.scene.removeEventListener('xrInitialized', this.xrInitialized);
-          this.xrIsInit = true;
-          // normalized device coordinates position
-          this.normalizedCoordinatedPositionPointer = new THREE.Vector2();
-          //Screen coordinates normalized to -1..1 (0,0 is at center and 1,1 is at top right)
-          this.coordinatesToFindAnchors = new THREE.Vector2(0.5, 0.5);
-          window.addEventListener('touchstart', this.onTouchStart);
-
-          if (this.isNotStartedYet) {
-            this.start();
-          }
-        },
-        realityChanged: function (data) {
-          if (data.detail === 'ar') {
-            if (AFRAME.scenes[0].systems.xr.supportAR) {
-              if (this.xrIsInit) {
-                this.start();
-              } else {
-                this.isNotStartedYet = true;
-              }
-            }
-          }
-        },
-        start: function () {
-          this.scene.addEventListener('updateFrame', this.updateFrame);
-        },
-        onTouchStart: function (ev) {
-          if (!ev.touches || ev.touches.length === 0) {
-            console.error('No touches on touch event', ev);
-            return
-          }
-          this.tapData = [
-            ev.touches[0].clientX / window.innerWidth,
-            ev.touches[0].clientY / window.innerHeight
-          ];
-        },
-        /*
-        Add a node to the scene and keep its pose updated using the anchorOffset
-        */
-        addAnchoredNode: function (anchorOffset, node) {
-          this.anchoredNodes.push({
-            anchorOffset: anchorOffset,
-            node: node
-          });
-          this.scene.appendChild(node);
-        },
-        /*
-        Get the anchor data from the frame and use it and the anchor offset to update the pose of the node, this must be an Object3D
-        */
-        updateNodeFromAnchorOffset: function (frame, node, anchorOffset) {
-          var anchor = frame.getAnchor(anchorOffset.anchorUID);
-          if (anchor === null) {
-            return;
-          }
-          var anchorMatrix = new THREE.Matrix4().fromArray(anchorOffset.getOffsetTransform(anchor.coordinateSystem));
-          var positionVec3 = new THREE.Vector3().setFromMatrixPosition(anchorMatrix);
-
-          node.setAttribute('position', {
-            x: positionVec3.x,
-            y: positionVec3.y,
-            z: positionVec3.z
-          });
-
-          var rotationQuat = new THREE.Quaternion().setFromRotationMatrix(anchorMatrix);
-          var rotationVec3 = new THREE.Vector3().applyQuaternion(rotationQuat);
-
-          node.setAttribute('rotation', {
-            x: rotationVec3.x,
-            y: rotationVec3.y,
-            z: rotationVec3.z
-          });
-        },
-        createEntity: function () {
-          var newEl = document.createElement('a-entity');
-          newEl.setAttribute('geometry', {
-            primitive: 'box',
-            width: 0.1,
-            height: 0.1,
-            depth: 0.1
-          });
-
-          newEl.setAttribute('material', {
-            shader: 'standard',
-            transparent: true,
-            opacity: 0.45,
-            fog: false,
-            color: '#ffcc00'
-          });
-
-          return newEl;
-        },
-        updateFrame: function (data) {
-          var frame = data.detail;
-          if (this.tapData !== null) {
-            var x = this.tapData[0];
-            var y = this.tapData[1];
-            this.tapData = null;
-            var self = this;
-            data.detail.findAnchor(x,y).then(function (anchorOffset) {
-              if (anchorOffset === null){
-                self.alertMessage.innerHTML = 'miss';
-              } else {
-                self.alertMessage.innerHTML = 'hit';
-                self.addAnchoredNode(anchorOffset, self.createEntity());
-              }
-            }).catch(function (err) {
-              console.error('Error in hit test', err);
-            });
-          }
-          // Update anchored node positions in the scene graph
-          for (var i = 0; i < this.anchoredNodes.length; i++) {
-            this.updateNodeFromAnchorOffset(frame, this.anchoredNodes[i].node, this.anchoredNodes[i].anchorOffset);
-          }
-        }
-      });
-      </script>
+    <script src='../../lib/hit-test.js'></script>
   </head>
   <body>
     <a-scene hit-test>
     </a-scene>
+
+    <script>
+      var scene = AFRAME.scenes[0];
+
+      var newObject = function(data) {
+        var entity = data.detail;
+
+        entity.setAttribute('geometry', {
+          primitive: 'box',
+          width: 0.1,
+          height: 0.1,
+          depth: 0.1
+        });
+
+        entity.setAttribute('material', {
+          shader: 'standard',
+          transparent: true,
+          opacity: 0.45,
+          fog: false,
+          color: '#ffcc00'
+        });     
+
+        scene.appendChild(entity);
+      }
+
+      scene.addEventListener('newAnchoredEntity', newObject);
+    </script>
   </body>
 </html>
+
+
