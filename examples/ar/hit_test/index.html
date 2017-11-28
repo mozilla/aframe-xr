@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>A-Frame / WebXR / AR / Hit Test</title>
+    <meta name="description" content="Hello, WebVR! - A-Frame">
+    <script>window.debug = true;</script>
+    <script src='../../../vendor/aframe-v0.7.1.js'></script>
+    <script src='../../../dist/aframe-xr.js'></script>
+    <script>
+        AFRAME.registerSystem('hit-test', {
+        init: function () {
+          this.tapData = null;
+          this.bindMethods();
+          this.addDOMEls();
+          this.scene = document.querySelector('a-scene');
+          this.scene.addEventListener('xrInitialized', this.xrInitialized);
+          this.scene.addEventListener('realityChanged', this.realityChanged);
+        },
+        addDOMEls: function () {
+          var title = document.createElement('div');
+          title.style.position = 'absolute';
+          title.style.top = '30px';
+          title.style.fontFamily = 'Arial, Helvetica, sans-serif';
+          title.style.fontSize = '16px';
+          title.style.fontWeight = 'bold';
+          title.style.zIndex = 10;
+          title.style.width = '100%';
+          title.style.textAlign = 'center';
+          title.innerHTML = 'Find anchors by searching on tap events.';
+          document.body.appendChild(title);
+
+          this.alertMessage = document.createElement('div');
+          this.alertMessage.style.position = 'absolute';
+          this.alertMessage.style.bottom = '50px';
+          this.alertMessage.style.fontFamily = 'Arial, Helvetica, sans-serif';
+          this.alertMessage.style.fontSize = '24px';
+          this.alertMessage.style.fontWeight = 'bold';
+          this.alertMessage.style.zIndex = 10;
+          this.alertMessage.style.width = '100%';
+          this.alertMessage.style.textAlign = 'center';
+          document.body.appendChild(this.alertMessage);
+        },
+        bindMethods: function (){
+          this.xrInitialized = this.xrInitialized.bind(this);
+          this.realityChanged = this.realityChanged.bind(this);
+          this.updateFrame = this.updateFrame.bind(this);
+          this.onTouchStart = this.onTouchStart.bind(this);
+        },
+        xrInitialized: function () {
+          this.scene.removeEventListener('xrInitialized', this.xrInitialized);
+          this.xrIsInit = true;
+          // normalized device coordinates position
+          this.normalizedCoordinatedPositionPointer = new THREE.Vector2();
+          //Screen coordinates normalized to -1..1 (0,0 is at center and 1,1 is at top right)
+          this.coordinatesToFindAnchors = new THREE.Vector2(0.5, 0.5);
+          window.addEventListener('touchstart', this.onTouchStart);
+
+          if (this.isNotStartedYet) {
+            this.start();
+          }
+        },
+        realityChanged: function (data) {
+          if (data.detail === 'ar') {
+            if (AFRAME.scenes[0].systems.xr.supportAR) {
+              if (this.xrIsInit) {
+                this.start();
+              } else {
+                this.isNotStartedYet = true;
+              }
+            }
+          }
+        },
+        start: function () {
+          this.scene.addEventListener('updateFrame', this.updateFrame);
+        },
+        onTouchStart: function (ev) {
+          if (!ev.touches || ev.touches.length === 0) {
+            console.error('No touches on touch event', ev);
+            return
+          }
+          this.tapData = [
+            ev.touches[0].clientX / window.innerWidth,
+            ev.touches[0].clientY / window.innerHeight
+          ];
+        },
+        /*
+        Get the anchor data from the frame and use it and the anchor offset to update the pose of the node, this must be an Object3D
+        */
+        updatePinFromAnchorOffset: function (frame, anchorOffset) {
+          var anchor = frame.getAnchor(anchorOffset.anchorUID);
+          if (anchor === null) {
+            return;
+          }
+          var anchorMatrix = new THREE.Matrix4().fromArray(anchorOffset.getOffsetTransform(anchor.coordinateSystem));
+          this.addEntity(anchorMatrix);
+        },
+        addEntity: function (anchorMatrix) {
+          var newEl = document.createElement('a-entity');
+          newEl.setAttribute('geometry', {
+            primitive: 'box',
+            width: 0.1,
+            height: 0.1,
+            depth: 0.1
+          });
+
+          newEl.setAttribute('material', {
+            shader: 'standard',
+            transparent: true,
+            opacity: 0.45,
+            fog: false,
+            color: '#ffcc00'
+          });
+          var positionVec3 = new THREE.Vector3().setFromMatrixPosition(anchorMatrix);
+
+          newEl.setAttribute('position', {
+            x: positionVec3.x,
+            y: positionVec3.y,
+            z: positionVec3.z
+          });
+
+          var rotationQuat = new THREE.Quaternion().setFromRotationMatrix(anchorMatrix);
+          var rotationVec3 = new THREE.Vector3().applyQuaternion(rotationQuat);
+
+          newEl.setAttribute('rotation', {
+            x: rotationVec3.x,
+            y: rotationVec3.y,
+            z: rotationVec3.z
+          });
+
+          this.scene.appendChild(newEl);
+        },
+        updateFrame: function (data) {
+          if (this.tapData !== null) {
+            var x = this.tapData[0];
+            var y = this.tapData[1];
+            this.tapData = null;
+            var self = this;
+            data.detail.findAnchor(x,y).then(function (anchorOffset) {
+              if (anchorOffset === null){
+                self.alertMessage.innerHTML = 'miss';
+              } else {
+                self.alertMessage.innerHTML = 'hit';
+                self.updatePinFromAnchorOffset(data.detail, anchorOffset);
+              }
+            }).catch(function (err) {
+              console.error('Error in hit test', err);
+            });
+          }
+        }
+      });
+      </script>
+  </head>
+  <body>
+    <a-scene></a-scene>
+  </body>
+</html>

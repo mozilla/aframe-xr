@@ -3,27 +3,19 @@ AFRAME.registerSystem('xr', {
     AR_AUTOSTART: { default: true }
   },
   init: function () {
-    this.posePosition = new THREE.Vector3();
-    this.poseQuaternion = new THREE.Quaternion();
-    this.poseEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-    this.poseRotation = new THREE.Vector3();
-    this.poseIsLost = true;
-
-    this.activeRealityType = 'magicWindow';
-
     this.el.sceneEl.setAttribute('vr-mode-ui', {enabled: false});
+    this.bindMethods();
 
-    var self = this;
-    this.sceneEl.addEventListener('loaded', this.wrapSceneMethods.bind(this));
-    if (this.el.camera) {
-      this.cameraActivated();
-    } else {
-      this.el.addEventListener('camera-set-active', function (evt) {
-        self.cameraActivated();
-      });
-    }
+    this.sceneEl.addEventListener('loaded', this.wrapSceneMethods);
   },
-
+  bindMethods: function () {
+    this.updateFrame = this.updateFrame.bind(this);
+    this.sessionStarted = this.sessionStarted.bind(this);
+    this.sessionEnded = this.sessionEnded.bind(this);
+    this.poseLost = this.poseLost.bind(this);
+    this.poseFound = this.poseFound.bind(this);
+    this.wrapSceneMethods = this.wrapSceneMethods.bind(this);
+  },
   wrapSceneMethods: function () {
     var sceneEl = this.sceneEl;
     // Store references to the original function
@@ -84,15 +76,27 @@ AFRAME.registerSystem('xr', {
 
       if (this.isPlaying) { this.tock(this.time, delta); }
     };
+
+    this.posePosition = new THREE.Vector3();
+    this.poseQuaternion = new THREE.Quaternion();
+    this.poseEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+    this.poseRotation = new THREE.Vector3();
+    this.poseIsLost = true;
+
+    this.activeRealityType = 'magicWindow';
+
+    if (this.el.camera) {
+      this.cameraActivated();
+    } else {
+      this.el.addEventListener('camera-set-active', function (evt) {
+        self.cameraActivated();
+      });
+    }
   },
 
   cameraActivated: function () {
     this.defaultPosition = new THREE.Vector3(0, 1.6, 0.1);
     this.el.camera.el.setAttribute('position', this.defaultPosition);
-
-    this.updateFrame = this.updateFrame.bind(this);
-    this.sessionStarted = this.sessionStarted.bind(this);
-    this.sessionStopped = this.sessionStopped.bind(this);
 
     var self = this;
     this.el.emit('realityChanged', 'magicWindow');
@@ -103,6 +107,15 @@ AFRAME.registerSystem('xr', {
     var sceneEl = this.sceneEl;
     sceneEl.renderer.autoClear = false;
 
+    this.supportAR = false;
+    for (var i = 0; i < displays.length; i++) {
+      var display = displays[i];
+      if (display.supportedRealities.ar) {
+        this.supportAR = true;
+      }
+    }
+    this.el.emit('xrInitialized');
+
     // To show camera on iOS devices
     document.documentElement.style.backgroundColor = 'transparent';
     document.body.style.backgroundColor = 'transparent';
@@ -112,13 +125,16 @@ AFRAME.registerSystem('xr', {
     }
     sceneEl.renderer.xr = new THREE.WebXRManager(options, displays, sceneEl.renderer, sceneEl.camera, sceneEl.object3D, this.updateFrame);
     sceneEl.renderer.xr.addEventListener('sessionStarted', this.sessionStarted);
-    sceneEl.renderer.xr.addEventListener('sessionStopped', this.sessionStopped);
+    sceneEl.renderer.xr.addEventListener('sessionEnded', this.sessionEnded);
+
+    sceneEl.renderer.xr.addEventListener('poseLost', this.poseLost);
+    sceneEl.renderer.xr.addEventListener('poseFound', this.poseFound);
 
     if (sceneEl.renderer.xr.totalSupportedDisplays === 0) {
       this.sceneEl.setAttribute('vr-mode-ui', {enabled: true});
       // this.sceneEl.setAttribute('ar-mode-ui', {enabled: true});
-    }else{
-      if(!sceneEl.renderer.xr.autoStarted) {
+    } else {
+      if (!sceneEl.renderer.xr.autoStarted) {
         this.addEnterButtons(displays);
       }
     }
@@ -129,11 +145,11 @@ AFRAME.registerSystem('xr', {
   addEnterButtons: function (displays) {
     for (var i = 0; i < displays.length; i++) {
       var display = displays[i];
-      if(display.supportedRealities.vr){
+      if (display.supportedRealities.vr) {
         this.lastVRDisplay = display;
         this.sceneEl.setAttribute('vr-mode-ui', {enabled: true});
       }
-      if(display.supportedRealities.ar){
+      if (display.supportedRealities.ar) {
         this.lastARDisplay = display;
         this.sceneEl.setAttribute('ar-mode-ui', {enabled: true});
       }
@@ -144,12 +160,21 @@ AFRAME.registerSystem('xr', {
     this.el.emit('realityChanged', this.activeRealityType);
   },
 
-  sessionStopped: function (data) {
+  sessionEnded: function (data) {
     this.activeRealityType = 'magicWindow';
     this.el.emit('realityChanged', this.activeRealityType);
   },
 
+  poseLost: function () {
+    this.el.emit('poseLost');
+  },
+
+  poseFound: function () {
+    this.el.emit('poseFound');
+  },
+
   updateFrame: function (frame) {
+    this.el.emit('updateFrame', frame);
     // Custom code for each frame rendered
   }
 });
