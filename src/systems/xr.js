@@ -3,7 +3,7 @@ AFRAME.registerSystem('xr', {
     AR_AUTOSTART: { default: true }
   },
   init: function () {
-    this.el.sceneEl.setAttribute('vr-mode-ui', {enabled: false});
+    this.sceneEl.setAttribute('vr-mode-ui', {enabled: false});
     this.bindMethods();
 
     this.sceneEl.addEventListener('loaded', this.wrapSceneMethods);
@@ -30,7 +30,7 @@ AFRAME.registerSystem('xr', {
     };
 
     sceneEl.exitAR = function () {
-      this.renderer.xr.stopSession();
+      this.renderer.xr.endSession();
     };
 
     sceneEl.enterVR = function (fromExternal) {
@@ -43,7 +43,7 @@ AFRAME.registerSystem('xr', {
 
     sceneEl.exitVR = function () {
       if (this.renderer.xr.sessionActive) {
-        this.renderer.xr.stopSession();
+        this.renderer.xr.endSession();
       }
       sceneEl._exitVR();
     };
