@@ -6,15 +6,12 @@ AFRAME.registerComponent('xr', {
   },
   init: function () {
     this.realityChanged = this.realityChanged.bind(this);
-    this.el.sceneEl.addEventListener('loaded', this.sceneLoaded.bind(this));
+    this.el.sceneEl.addEventListener('realityChanged', this.realityChanged);
     this.originalVisibility = this.el.getAttribute('visible');
   },
   update: function (){
     this.originalVisibility = this.el.getAttribute('visible');
     this.el.setAttribute('visible', this.newVisibility);
-  },
-  sceneLoaded: function () {
-    document.querySelector('a-scene').addEventListener('realityChanged', this.realityChanged);
   },
   realityChanged: function (data) {
     if (this.data[data.detail] !== undefined) {
