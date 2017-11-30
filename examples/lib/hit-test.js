@@ -99,8 +99,8 @@ AFRAME.registerComponent('hit-test', {
             
             // will set the position and orientation based on the anchorOffset attached to the entity
             entity.setAttribute('xranchor', {});
-            entity.anchorOffset = anchorOffset;
-
+            entity.components.xranchor.anchorOffset = anchorOffset;
+            
             self.el.emit('newAnchoredEntity', entity);            
           }
         }).catch(function (err) {

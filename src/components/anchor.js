@@ -16,7 +16,7 @@ AFRAME.registerComponent('xranchor', {
 
   updateFrame: function (data) {
     var frame = data.detail;
-    var anchorOffset = this.el.anchorOffset;
+    var anchorOffset = this.anchorOffset;
 
     if (!anchorOffset) {
       return;
