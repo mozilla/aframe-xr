@@ -6263,7 +6263,7 @@ AFRAME.registerComponent('xranchor', {
 
   updateFrame: function updateFrame(data) {
     var frame = data.detail;
-    var anchorOffset = this.el.anchorOffset;
+    var anchorOffset = this.anchorOffset;
 
     if (!anchorOffset) {
       return;
