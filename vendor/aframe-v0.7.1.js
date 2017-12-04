@@ -66099,6 +66099,7 @@ module.exports.Component = registerComponent('camera', {
 
     // Update height offset.
     this.addHeightOffset(oldData.userHeight);
+
     // Update properties.
     camera.aspect = data.aspect || (window.innerWidth / window.innerHeight);
     camera.far = data.far;
@@ -68319,14 +68320,11 @@ module.exports.Component = registerComponent('look-controls', {
   },
 
   init: function () {
+    var self = this;
     var sceneEl = this.el.sceneEl;
     this.previousHMDPosition = new THREE.Vector3();
-    this.hmdPose = {
-      position: new THREE.Vector3(),
-      quaternion: new THREE.Quaternion()
-    };
+    this.hmdQuaternion = new THREE.Quaternion();
     this.hmdEuler = new THREE.Euler();
-    this.wrapGetCamera = this.wrapGetCamera.bind(this);
     this.position = new THREE.Vector3();
     this.polyfillObject = new THREE.Object3D();
     this.polyfillControls = new PolyfillControls(this.polyfillObject);
@@ -68334,14 +68332,9 @@ module.exports.Component = registerComponent('look-controls', {
     this.deltaRotation = {};
     this.setupMouseControls();
     this.bindMethods();
-
-    // Reset previous HMD position when we exit VR.
-    sceneEl.addEventListener('exit-vr', this.onExitVR);
-    if (sceneEl.hasLoaded) {
-      this.wrapGetCamera();
-    } else {
-      sceneEl.addEventListener('loaded', this.wrapGetCamera);
-    }
+    sceneEl.addEventListener('enter-vr', function () {
+      sceneEl.renderer.vr.setPoseTarget(self.el.object3D);
+    });
   },
 
   update: function (oldData) {
@@ -68364,33 +68357,6 @@ module.exports.Component = registerComponent('look-controls', {
     if (!data.enabled || this.el.sceneEl.is('vr-mode')) { return; }
     this.updatePosition();
     this.updateOrientation();
-  },
-
-  /**
-   * Wrapper for the getCamera method of the THREE WebVRManager.
-   * It intercepts the calls from the renderer and passes the entity object3D
-   * that is updated with the HMD pose. The rotation and position are then
-   * transfered to the entity DOM element.
-   */
-  updatePose: function (camera) {
-    var el = this.el;
-    var data = this.data;
-    var cameraObject3D = this.el.getObject3D('camera');
-    var hmdPose = this.hmdPose;
-    var vrCamera;
-    var elPosition = el.getAttribute('position');
-    if (!data.enabled) { return; }
-    this.position.copy(elPosition).sub(hmdPose.position);
-    el.setAttribute('position', this.position);
-    vrCamera = this.originalGetCamera.call(this.el.sceneEl.renderer.vr, cameraObject3D);
-    hmdPose.position.copy(cameraObject3D.position);
-    hmdPose.quaternion.copy(cameraObject3D.quaternion);
-    cameraObject3D.position.set(0, 0, 0);
-    cameraObject3D.quaternion.set(0, 0, 0, 1);
-    cameraObject3D.updateMatrix();
-    this.updatePosition();
-    this.updateOrientation();
-    return vrCamera;
   },
 
   play: function () {
@@ -68485,10 +68451,10 @@ module.exports.Component = registerComponent('look-controls', {
     var yawObject = this.yawObject;
     var sceneEl = this.el.sceneEl;
     var rotation = this.rotation;
-
+    var object3D = this.el.object3D;
     if (sceneEl.is('vr-mode')) {
       // Calculate HMD quaternion.
-      hmdEuler.setFromQuaternion(this.hmdPose.quaternion, 'YXZ');
+      hmdEuler.setFromQuaternion(object3D.quaternion, 'YXZ');
       // Mouse rotation ignored with an active headset. Use headset rotation.
       rotation.x = radToDeg(hmdEuler.x);
       rotation.y = radToDeg(hmdEuler.y);
@@ -68511,6 +68477,7 @@ module.exports.Component = registerComponent('look-controls', {
   */
   updatePosition: function () {
     var el = this.el;
+    var currentHMDPosition;
     var currentPosition;
     var position = this.position;
     var previousHMDPosition = this.previousHMDPosition;
@@ -68518,11 +68485,24 @@ module.exports.Component = registerComponent('look-controls', {
 
     if (!sceneEl.is('vr-mode')) { return; }
 
+    // Calculate change in position.
+    currentHMDPosition = this.calculateHMDPosition();
     currentPosition = el.getAttribute('position');
-    position.copy(currentPosition).add(this.hmdPose.position);
+
+    position.copy(currentPosition).sub(previousHMDPosition).add(currentHMDPosition);
     el.setAttribute('position', position);
-    previousHMDPosition.copy(this.hmdPose.position);
+    previousHMDPosition.copy(currentHMDPosition);
   },
+
+  calculateHMDPosition: (function () {
+    var position = new THREE.Vector3();
+    return function () {
+      var object3D = this.el.object3D;
+      object3D.updateMatrix();
+      position.setFromMatrixPosition(object3D.matrix);
+      return position;
+    };
+  })(),
 
   /**
    * Calculate delta rotation for mouse-drag and touch-drag.
@@ -68655,12 +68635,6 @@ module.exports.Component = registerComponent('look-controls', {
       return;
     }
     disableGrabCursor();
-  },
-
-  wrapGetCamera: function () {
-    var renderer = this.el.sceneEl.renderer;
-    this.originalGetCamera = renderer.vr.getCamera;
-    renderer.vr.getCamera = this.updatePose.bind(this);
   }
 });
 
@@ -78113,7 +78087,7 @@ _dereq_('./core/a-mixin');
 _dereq_('./extras/components/');
 _dereq_('./extras/primitives/');
 
-console.log('A-Frame Version: 0.7.0 (Date 2017-11-09, Commit #77145539)');
+console.log('A-Frame Version: 0.7.0 (Date 2017-12-04, Commit #41b52768)');
 console.log('three Version:', pkg.dependencies['three']);
 console.log('WebVR Polyfill Version:', pkg.dependencies['webvr-polyfill']);
 
