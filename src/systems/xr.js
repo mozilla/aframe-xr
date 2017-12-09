@@ -53,13 +53,11 @@ AFRAME.registerSystem('xr', {
         // Update camera.
         var camera = this.camera;
         var size = {
-          height: window.innerHeight,
-          width: window.innerWidth
+          width: window.innerWidth,
+          height: window.innerHeight
         };
         camera.aspect = size.width / size.height;
         camera.updateProjectionMatrix();
-        // Notify renderer of size change.
-        this.renderer.setSize(size.width, size.height, false);
       }
     };
 
@@ -71,6 +69,7 @@ AFRAME.registerSystem('xr', {
       if (this.isPlaying) { this.tick(this.time, delta); }
       renderer.animate(this.render.bind(this));
       if (this.renderer.xr && (!this.renderer.xr.session ||this.renderer.xr.session && !this.renderer.xr.sessionActive)) {
+        renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.render(this.object3D, this.camera, this.renderTarget);
       }
 
