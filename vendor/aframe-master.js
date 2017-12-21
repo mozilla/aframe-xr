@@ -69556,12 +69556,20 @@ module.exports.Component = registerComponent('scale', {
 /* global THREE */
 var register = _dereq_('../../core/component').registerComponent;
 
-module.exports.Component = register('background', {
-  schema: {color: {type: 'color', default: 'black'}},
-  update: function () {
-    // this.el.object3D.background = new THREE.Color(this.data.color);
-  }
-});
+	module.exports.Component = register('background', {
+		schema: {
+			color: {type: 'color', default: 'black'},
+			transparent: {default: false}
+		},
+		update: function () {
+			var data = this.data;
+			if (data.transparent) {
+				this.el.object3D.background = null;
+				return;
+			}
+			this.el.object3D.background = new THREE.Color(data.color);
+		}
+	});
 
 },{"../../core/component":126}],99:[function(_dereq_,module,exports){
 var register = _dereq_('../../core/component').registerComponent;
@@ -75736,7 +75744,6 @@ module.exports.AScene = registerElement('a-scene', {
   prototype: Object.create(AEntity.prototype, {
     defaultComponents: {
       value: {
-        'background': '',
         'inspector': '',
         'keyboard-shortcuts': '',
         'screenshot': '',
