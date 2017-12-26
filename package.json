@@ -28,6 +28,6 @@
     "webpack-dev-server": "^2.9.3"
   },
   "dependencies": {
-    "three.xr.js": "0.1.0"
+    "three.xr.js": "0.1.2"
   }
 }

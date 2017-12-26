@@ -5,7 +5,6 @@ AFRAME.registerSystem('xr', {
   init: function () {
     this.sceneEl.setAttribute('vr-mode-ui', {enabled: false});
     this.bindMethods();
-
     this.sceneEl.addEventListener('loaded', this.wrapSceneMethods);
   },
   bindMethods: function () {
@@ -28,11 +27,9 @@ AFRAME.registerSystem('xr', {
     sceneEl.enterAR = function () {
       this.renderer.xr.startSession(self.lastARDisplay, 'ar');
     };
-
     sceneEl.exitAR = function () {
       this.renderer.xr.endSession();
     };
-
     sceneEl.enterVR = function (fromExternal) {
       if (!this.renderer.xr.sessionActive && self.lastVRDisplay) {
         this.renderer.xr.startSession(self.lastVRDisplay, 'vr');
@@ -40,14 +37,14 @@ AFRAME.registerSystem('xr', {
         sceneEl._enterVR(fromExternal);
       }
     };
-
     sceneEl.exitVR = function () {
       if (this.renderer.xr.sessionActive) {
         this.renderer.xr.endSession();
+      } else {
+        sceneEl._exitVR();
       }
-      sceneEl._exitVR();
+ 
     };
-
     sceneEl.resize = function () {
       if (this.renderer.xr && !this.renderer.xr.sessionActive) {
         // Update camera.
@@ -60,7 +57,6 @@ AFRAME.registerSystem('xr', {
         camera.updateProjectionMatrix();
       }
     };
-
     sceneEl.render = function () {
       var delta = this.clock.getDelta() * 1000;
       var renderer = this.renderer;
@@ -72,7 +68,6 @@ AFRAME.registerSystem('xr', {
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.render(this.object3D, this.camera, this.renderTarget);
       }
-
       if (this.isPlaying) { this.tock(this.time, delta); }
     };
 
