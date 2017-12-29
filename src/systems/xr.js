@@ -1,11 +1,13 @@
 AFRAME.registerSystem('xr', {
   schema: {
-    AR_AUTOSTART: { default: true }
+    arAutostart: { default: true },
+    arLightEstimate: { default: true }
   },
   init: function () {
     this.sceneEl.setAttribute('vr-mode-ui', {enabled: false});
     this.bindMethods();
     this.sceneEl.addEventListener('loaded', this.wrapSceneMethods);
+    this.lightEstimate = 1;
   },
   bindMethods: function () {
     this.updateFrame = this.updateFrame.bind(this);
@@ -108,6 +110,7 @@ AFRAME.registerSystem('xr', {
         this.supportAR = true;
       }
     }
+
     this.el.emit('xrInitialized');
 
     // To show camera on iOS devices
@@ -115,7 +118,7 @@ AFRAME.registerSystem('xr', {
     document.body.style.backgroundColor = 'transparent';
     var options = {
       // Flag to start AR if is the unique display available.
-      AR_AUTOSTART: this.data.AR_AUTOSTART // Default: true
+      AR_AUTOSTART: this.data.arAutostart // Default: true
     }
     sceneEl.renderer.xr = new THREE.WebXRManager(options, displays, sceneEl.renderer, sceneEl.camera, sceneEl.object3D, this.updateFrame);
     sceneEl.renderer.xr.addEventListener('sessionStarted', this.sessionStarted);
@@ -166,9 +169,34 @@ AFRAME.registerSystem('xr', {
   poseFound: function () {
     this.el.emit('poseFound');
   },
-
+  update: function () {
+    if (this.data.arLightEstimate) {
+      this.lightsArray = this.el.sceneEl.querySelectorAll('[light]');
+      var self = this;
+      this.lightsArrayInterval = setInterval(
+        function () {
+          self.lightsArray = self.el.sceneEl.querySelectorAll('[light]');
+        },
+        2000
+      );
+    } else {
+      if (this.lightsArrayInterval) {
+        clearInterval(this.lightsArrayInterval);
+      }
+    }
+  },
   updateFrame: function (frame) {
     this.el.emit('updateFrame', frame);
     // Custom code for each frame rendered
+    if (frame.hasLightEstimate && this.data.arLightEstimate) {
+      for (let i = 0; i < this.lightsArray.length; i++) {
+        var element = this.lightsArray[i];
+        if (!element.getObject3D('light').originalIntensity) {
+          element.getObject3D('light').originalIntensity = element.getAttribute('light').intensity;
+        }
+        this.lightEstimate = frame.lightEstimate;
+        element.setAttribute('light', 'intensity', element.getObject3D('light').originalIntensity * frame.lightEstimate);
+      }
+    }
   }
 });

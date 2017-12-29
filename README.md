@@ -6,6 +6,9 @@
 System &amp; components to build [WebXR](https://github.com/mozilla/webxr-api) experiences with [A-frame](https://github.com/aframevr/aframe)
 
 ## Running the examples
+
+Visit [this URL with all the examples](https://mozilla.github.io/aframe-xr/) or:
+
 <a href="https://docs.npmjs.com/getting-started/installing-node">Install npm</a> and then run the following:
 
 ```
@@ -42,7 +45,8 @@ $ npm start
 
 | Property                        | Default | Description                                          |
 |---------------------------------|---------|------------------------------------------------------|
-| AR_AUTOSTART                    | true    | Start AR if is the unique display available          |
+| arAutostart                     | true    | Start AR if is the unique display available          |
+| arLightEstimate                 | false   | Mofify lights intesity with the light estimation     |
 
 ### xr Component
 
