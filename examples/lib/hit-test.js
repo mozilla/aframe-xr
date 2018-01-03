@@ -1,7 +1,7 @@
 AFRAME.registerComponent('hit-test', {
     init: function () {
       if (!this.el.isScene) {
-        console.warn('Fog component can only be applied to <a-scene>');
+        console.warn('hit-test component can only be applied to <a-scene>');
         return;
       }
       this.tapData = null;
