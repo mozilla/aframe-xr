@@ -46,7 +46,7 @@ $ npm start
 | Property                        | Default | Description                                          |
 |---------------------------------|---------|------------------------------------------------------|
 | arAutostart                     | true    | Start AR if is the unique display available          |
-| arLightEstimate                 | false   | Mofify lights intesity with the light estimation     |
+| arLightEstimate                 | false   | Modify lights intensity with the light estimation    |
 
 ### xr Component
 
