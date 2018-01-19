@@ -38,7 +38,7 @@ AFRAME.registerComponent('reticle', {
         window.addEventListener('touchstart', this.onTouchStart);
       }
       model.fromArray(hit[0].modelMatrix);
-      model.decompose(tempPos, tempQuat, tempScale);
+      model.decompose(tempPos, tempQuat, tempScale); 
       this.el.setAttribute('position', {
         x: tempPos.x,
         y: tempPos.y,

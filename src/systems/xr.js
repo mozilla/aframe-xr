@@ -27,14 +27,14 @@ AFRAME.registerSystem('xr', {
 
     var self = this;
     sceneEl.enterAR = function () {
-      this.renderer.xr.startSession(self.lastARDisplay, 'ar');
+      this.renderer.xr.startSession(self.lastARDisplay, 'ar', true);
     };
     sceneEl.exitAR = function () {
       this.renderer.xr.endSession();
     };
     sceneEl.enterVR = function (fromExternal) {
       if (!this.renderer.xr.sessionActive && self.lastVRDisplay) {
-        this.renderer.xr.startSession(self.lastVRDisplay, 'vr');
+        this.renderer.xr.startPresenting();
       } else {
         sceneEl._enterVR(fromExternal);
       }
@@ -91,8 +91,8 @@ AFRAME.registerSystem('xr', {
   },
 
   cameraActivated: function () {
-    this.defaultPosition = new THREE.Vector3(0, 1.6, 0.1);
-    this.el.camera.el.setAttribute('position', this.defaultPosition);
+    // this.defaultPosition = new THREE.Vector3(0, 0, 0);
+    // this.el.camera.parent.parent.el.setAttribute('position', this.defaultPosition);
 
     var self = this;
     this.el.emit('realityChanged', 'magicWindow');

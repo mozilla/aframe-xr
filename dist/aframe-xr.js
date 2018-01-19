@@ -212,6 +212,8 @@ THREE.WebXRManager = function () {
 
   this.autoStarted = false;
 
+  this.matrixWorldInverse = new THREE.Matrix4();
+
   this.poseFound = false;
   function handleFrame(frame) {
     if (this.sessionActive) {
@@ -239,23 +241,27 @@ THREE.WebXRManager = function () {
     this.renderer.setSize(this.session.baseLayer.framebufferWidth, this.session.baseLayer.framebufferHeight, false);
     this.renderer.clear();
 
+    if (this.camera.parent && this.camera.parent.type !== 'Scene') {
+      this.camera.parent.matrixAutoUpdate = false;
+      this.camera.parent.matrix.fromArray(headPose.poseModelMatrix);
+      this.camera.parent.updateMatrixWorld(true);
+    } else {
+      this.camera.matrixAutoUpdate = false;
+      this.camera.matrix.fromArray(headPose.poseModelMatrix);
+      this.camera.updateMatrixWorld(true);
+    }
+
     if (this.sessionActive) {
       // Render each view into this.session.baseLayer.context
-      // for(const view of frame.views) {
       for (var i = 0; i < frame.views.length; i++) {
         var view = frame.views[i];
+        // Each XRView has its own projection matrix, so set the camera to use that
+        this.camera.matrixWorldInverse.fromArray(view.viewMatrix);
+        // if (this.camera.parent && this.camera.parent.type !== 'Scene') {
+        //   this.matrixWorldInverse.getInverse(this.camera.parent.matrixWorld);
+        //   this.camera.matrixWorldInverse.multiply(this.matrixWorldInverse);
+        // }
         this.camera.projectionMatrix.fromArray(view.projectionMatrix);
-        if (this.camera.parent && this.camera.parent.type !== 'Scene') {
-          this.camera.parent.matrixAutoUpdate = false;
-          this.camera.parent.matrix.fromArray(headPose.poseModelMatrix);
-          this.camera.parent.updateMatrixWorld(true);
-        } else {
-          this.camera.matrixAutoUpdate = false;
-          // Each XRView has its own projection matrix, so set the camera to use that
-          this.camera.matrix.fromArray(headPose.poseModelMatrix);
-          this.camera.updateMatrixWorld(true);
-        }
-
         // Set up the renderer to the XRView's viewport and then render
         this.renderer.clearDepth();
         var viewport = view.getViewport(this.session.baseLayer);
@@ -263,18 +269,10 @@ THREE.WebXRManager = function () {
         this.doRender();
       }
     } else {
-      if (this.camera.parent && this.camera.parent.type !== 'Scene') {
-        this.camera.parent.matrixAutoUpdate = false;
-        this.camera.parent.matrix = new THREE.Matrix4();
-        this.camera.parent.updateMatrixWorld(true);
-      } else {
-        // this.camera.matrixAutoUpdate = false;
-        // // Each XRView has its own projection matrix, so set the camera to use that
-        // this.camera.projectionMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-        this.camera.matrix = new THREE.Matrix4();
-        this.camera.updateMatrixWorld(true);
-      }
-
+      // if (this.camera.parent && this.camera.parent.type !== 'Scene') {
+      //   this.matrixWorldInverse.getInverse(this.camera.parent.matrixWorld);
+      //   this.camera.matrixWorldInverse.multiply(this.matrixWorldInverse);
+      // }
       // Set up the renderer to the XRView's viewport and then render
       this.renderer.clearDepth();
       this.renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
@@ -282,7 +280,7 @@ THREE.WebXRManager = function () {
     }
   }
 
-  this.startSession = function (display, reality) {
+  this.startSession = function (display, reality, autoPresenting) {
     var _this = this;
 
     var createVirtualReality = false;
@@ -300,8 +298,10 @@ THREE.WebXRManager = function () {
       this.session.end();
       this.session = null;
     }
+    var self = this;
     // If the session is not created yet
     display.requestSession(sessionInitParamers).then(function (session) {
+      _this.session = session;
       session.realityType = reality;
       session.depthNear = 0.05;
       session.depthFar = 1000.0;
@@ -319,27 +319,34 @@ THREE.WebXRManager = function () {
 
       renderer.domElement.style.width = '100%';
       renderer.domElement.style.height = '100%';
-      // Set the session's base layer into which the app will render
-      session.baseLayer = new XRWebGLLayer(session, renderer.context);
-
-      // Handle layer focus events
-      session.baseLayer.addEventListener('focus', function (ev) {
-        _this.handleLayerFocus(ev);
-      });
-      session.baseLayer.addEventListener('blur', function (ev) {
-        _this.handleLayerBlur(ev);
-      });
-
-      session.requestFrame(boundHandleFrame);
-
-      _this.sessions.push(session);
-      _this.session = session;
-      _this.sessionActive = true;
-      // document.getElementsByClassName('webxr-realities')[0].style.display = 'block';
-      _this.dispatchEvent({ type: 'sessionStarted', session: session });
+      if (reality === 'ar' && autoPresenting) {
+        self.startPresenting();
+      }
     }).catch(function (err) {
       console.error('Error requesting session', err);
     });
+  };
+
+  this.startPresenting = function () {
+    var _this2 = this;
+
+    // Set the session's base layer into which the app will render
+    this.session.baseLayer = new XRWebGLLayer(this.session, renderer.context);
+
+    // Handle layer focus events
+    this.session.baseLayer.addEventListener('focus', function (ev) {
+      _this2.handleLayerFocus(ev);
+    });
+    this.session.baseLayer.addEventListener('blur', function (ev) {
+      _this2.handleLayerBlur(ev);
+    });
+
+    this.session.requestFrame(boundHandleFrame);
+
+    this.sessions.push(this.session);
+    this.sessionActive = true;
+    // document.getElementsByClassName('webxr-realities')[0].style.display = 'block';
+    this.dispatchEvent({ type: 'sessionStarted', session: this.session });
   };
 
   this.endSession = function () {
@@ -376,11 +383,13 @@ THREE.WebXRManager = function () {
   var vrSupportedDisplays = 0;
   var arSupportedDisplays = 0;
   var displayToAutoStart;
+  var displayVR;
   this.totalSupportedDisplays = 0;
 
   for (var i = 0; i < this.displays.length; i++) {
     var display = this.displays[i];
     if (display.supportedRealities.vr) {
+      displayVR = display;
       vrSupportedDisplays++;
     }
     if (display.supportedRealities.ar) {
@@ -388,9 +397,14 @@ THREE.WebXRManager = function () {
       arSupportedDisplays++;
     }
   }
+  // Start and presenting an AR session
   if (arSupportedDisplays === 1 && vrSupportedDisplays === 0 && this.options.AR_AUTOSTART) {
     this.autoStarted = true;
-    this.startSession(displayToAutoStart, 'ar');
+    this.startSession(displayToAutoStart, 'ar', true);
+  }
+  // Start and waiting to start presenting (by clicking a button) a VR session
+  if (arSupportedDisplays === 0 && vrSupportedDisplays === 1) {
+    this.startSession(displayVR, 'vr', false);
   }
 
   this.totalSupportedDisplays = arSupportedDisplays + vrSupportedDisplays;
@@ -2102,6 +2116,7 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
       this._eye = eye;
       this._viewport = new _XRViewport2.default(0, 0, 1, 1);
       this._projectionMatrix = new Float32Array(16);
+      this._viewMatrix = new Float32Array(16);
       _MatrixMath2.default.mat4_perspectiveFromFieldOfView(this._projectionMatrix, this._fov, this._depthNear, this._depthFar);
     }
 
@@ -2110,6 +2125,13 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
       value: function setProjectionMatrix(array16) {
         for (var i = 0; i < 16; i++) {
           this._projectionMatrix[i] = array16[i];
+        }
+      }
+    }, {
+      key: 'setViewMatrix',
+      value: function setViewMatrix(array16) {
+        for (var i = 0; i < 16; i++) {
+          this._viewMatrix[i] = array16[i];
         }
       }
     }, {
@@ -2142,6 +2164,11 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
       key: 'projectionMatrix',
       get: function get() {
         return this._projectionMatrix;
+      }
+    }, {
+      key: 'viewMatrix',
+      get: function get() {
+        return this._viewMatrix;
       }
     }]);
 
@@ -4997,6 +5024,11 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
       key: '_hitTestNoAnchor',
       value: function _hitTestNoAnchor(normalizedScreenX, normalizedScreenY, display) {
         return null;
+      }
+    }, {
+      key: '_getHasLightEstimate',
+      value: function _getHasLightEstimate() {
+        return false;
       }
     }]);
 
@@ -10531,6 +10563,8 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
       key: '_updateFromVRFrameData',
       value: function _updateFromVRFrameData() {
         this._vrDisplay.getFrameData(this._vrFrameData);
+        this._leftView.setViewMatrix(this._vrFrameData.leftViewMatrix);
+        this._rightView.setViewMatrix(this._vrFrameData.rightViewMatrix);
         this._leftView.setProjectionMatrix(this._vrFrameData.leftProjectionMatrix);
         this._rightView.setProjectionMatrix(this._vrFrameData.rightProjectionMatrix);
         if (this._vrFrameData.pose) {
@@ -11434,14 +11468,14 @@ AFRAME.registerSystem('xr', {
 
     var self = this;
     sceneEl.enterAR = function () {
-      this.renderer.xr.startSession(self.lastARDisplay, 'ar');
+      this.renderer.xr.startSession(self.lastARDisplay, 'ar', true);
     };
     sceneEl.exitAR = function () {
       this.renderer.xr.endSession();
     };
     sceneEl.enterVR = function (fromExternal) {
       if (!this.renderer.xr.sessionActive && self.lastVRDisplay) {
-        this.renderer.xr.startSession(self.lastVRDisplay, 'vr');
+        this.renderer.xr.startPresenting();
       } else {
         sceneEl._enterVR(fromExternal);
       }
@@ -11501,8 +11535,8 @@ AFRAME.registerSystem('xr', {
   },
 
   cameraActivated: function cameraActivated() {
-    this.defaultPosition = new THREE.Vector3(0, 1.6, 0.1);
-    this.el.camera.el.setAttribute('position', this.defaultPosition);
+    // this.defaultPosition = new THREE.Vector3(0, 0, 0);
+    // this.el.camera.parent.parent.el.setAttribute('position', this.defaultPosition);
 
     var self = this;
     this.el.emit('realityChanged', 'magicWindow');
