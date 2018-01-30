@@ -1,6 +1,6 @@
 {
   "name": "aframe-xr",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A-frame WebXR system",
   "main": "dist/aframe-xr.js",
   "scripts": {
