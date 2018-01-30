@@ -25,9 +25,8 @@
     "snazzy": "^7.0.0",
     "uglifyjs-webpack-plugin": "1.0.1",
     "webpack": "^3.8.1",
-    "webpack-dev-server": "^2.9.3"
+    "webpack-dev-server": "^2.9.3",
+    "three.xr.js": "0.1.9"
   },
-  "dependencies": {
-    "three.xr.js": "0.1.7"
-  }
+  "dependencies": {}
 }

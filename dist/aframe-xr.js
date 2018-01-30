@@ -250,17 +250,13 @@ THREE.WebXRManager = function () {
       this.camera.matrix.fromArray(headPose.poseModelMatrix);
       this.camera.updateMatrixWorld(true);
     }
-
     if (this.sessionActive) {
       // Render each view into this.session.baseLayer.context
       for (var i = 0; i < frame.views.length; i++) {
         var view = frame.views[i];
         // Each XRView has its own projection matrix, so set the camera to use that
         this.camera.matrixWorldInverse.fromArray(view.viewMatrix);
-        // if (this.camera.parent && this.camera.parent.type !== 'Scene') {
-        //   this.matrixWorldInverse.getInverse(this.camera.parent.matrixWorld);
-        //   this.camera.matrixWorldInverse.multiply(this.matrixWorldInverse);
-        // }
+
         this.camera.projectionMatrix.fromArray(view.projectionMatrix);
         // Set up the renderer to the XRView's viewport and then render
         this.renderer.clearDepth();
@@ -269,10 +265,6 @@ THREE.WebXRManager = function () {
         this.doRender();
       }
     } else {
-      // if (this.camera.parent && this.camera.parent.type !== 'Scene') {
-      //   this.matrixWorldInverse.getInverse(this.camera.parent.matrixWorld);
-      //   this.camera.matrixWorldInverse.multiply(this.matrixWorldInverse);
-      // }
       // Set up the renderer to the XRView's viewport and then render
       this.renderer.clearDepth();
       this.renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
@@ -330,22 +322,28 @@ THREE.WebXRManager = function () {
   this.startPresenting = function () {
     var _this2 = this;
 
-    // Set the session's base layer into which the app will render
-    this.session.baseLayer = new XRWebGLLayer(this.session, renderer.context);
+    // VR Mode
+    if (displayVR && displayVR._vrDisplay) {
+      renderer.vr.enabled = true;
+      displayVR._vrDisplay.isPresenting ? displayVR._vrDisplay.exitPresent() : displayVR._vrDisplay.requestPresent([{ source: this.renderer.domElement }]);
+    } else {
+      // AR Mode
+      // Set the session's base layer into which the app will render
+      this.session.baseLayer = new XRWebGLLayer(this.session, renderer.context);
 
-    // Handle layer focus events
-    this.session.baseLayer.addEventListener('focus', function (ev) {
-      _this2.handleLayerFocus(ev);
-    });
-    this.session.baseLayer.addEventListener('blur', function (ev) {
-      _this2.handleLayerBlur(ev);
-    });
+      // Handle layer focus events
+      this.session.baseLayer.addEventListener('focus', function (ev) {
+        _this2.handleLayerFocus(ev);
+      });
+      this.session.baseLayer.addEventListener('blur', function (ev) {
+        _this2.handleLayerBlur(ev);
+      });
 
-    this.session.requestFrame(boundHandleFrame);
+      this.session.requestFrame(boundHandleFrame);
+      this.sessions.push(this.session);
+      this.sessionActive = true;
+    }
 
-    this.sessions.push(this.session);
-    this.sessionActive = true;
-    // document.getElementsByClassName('webxr-realities')[0].style.display = 'block';
     this.dispatchEvent({ type: 'sessionStarted', session: this.session });
   };
 
@@ -354,6 +352,7 @@ THREE.WebXRManager = function () {
     this.dispatchEvent({ type: 'sessionEnded', session: this.session });
     this.sessionActive = false;
     if (this.session._display._vrDisplay && this.session._display.isPresenting) {
+      renderer.vr.enabled = false;
       this.session._display._vrDisplay.exitPresent();
     }
     // document.getElementsByClassName('webxr-realities')[0].style.display = 'none';
@@ -390,6 +389,7 @@ THREE.WebXRManager = function () {
     var display = this.displays[i];
     if (display.supportedRealities.vr) {
       displayVR = display;
+      this.renderer.vr.setDevice(displayVR._vrDisplay);
       vrSupportedDisplays++;
     }
     if (display.supportedRealities.ar) {
@@ -2606,7 +2606,7 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
       }
 
       // Set up some named global methods that the ARKit to JS bridge uses and send out custom events when they are called
-      var eventCallbacks = [['arkitStartRecording', ARKitWrapper.RECORD_START_EVENT], ['arkitStopRecording', ARKitWrapper.RECORD_STOP_EVENT], ['arkitDidMoveBackground', ARKitWrapper.DID_MOVE_BACKGROUND_EVENT], ['arkitWillEnterForeground', ARKitWrapper.WILL_ENTER_FOREGROUND_EVENT], ['arkitInterrupted', ARKitWrapper.INTERRUPTED_EVENT], ['arkitInterruptionEnded', ARKitWrapper.INTERRUPTION_ENDED_EVENT], ['arkitShowDebug', ARKitWrapper.SHOW_DEBUG_EVENT], ['arkitWindowResize', ARKitWrapper.WINDOW_RESIZE_EVENT]];
+      var eventCallbacks = [['arkitStartRecording', ARKitWrapper.RECORD_START_EVENT], ['arkitStopRecording', ARKitWrapper.RECORD_STOP_EVENT], ['arkitDidMoveBackground', ARKitWrapper.DID_MOVE_BACKGROUND_EVENT], ['arkitWillEnterForeground', ARKitWrapper.WILL_ENTER_FOREGROUND_EVENT], ['arkitInterrupted', ARKitWrapper.INTERRUPTED_EVENT], ['arkitInterruptionEnded', ARKitWrapper.INTERRUPTION_ENDED_EVENT], ['arkitShowDebug', ARKitWrapper.SHOW_DEBUG_EVENT], ['arkitWindowResize', ARKitWrapper.WINDOW_RESIZE_EVENT], ['onError', ARKitWrapper.ON_ERROR], ['arTrackingChanged', ARKitWrapper.AR_TRACKING_CHANGED]];
 
       var _loop = function _loop(_i) {
         window[eventCallbacks[_i][0]] = function (detail) {
@@ -3356,6 +3356,8 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
   ARKitWrapper.INTERRUPTION_ENDED_EVENT = 'arkit-interruption-ended';
   ARKitWrapper.SHOW_DEBUG_EVENT = 'arkit-show-debug';
   ARKitWrapper.WINDOW_RESIZE_EVENT = 'arkit-window-resize';
+  ARKitWrapper.ON_ERROR = 'on-error';
+  ARKitWrapper.AR_TRACKING_CHANGED = 'ar_tracking_changed';
 
   // hit test types
   ARKitWrapper.HIT_TEST_TYPE_FEATURE_POINT = 1;
@@ -6018,6 +6020,8 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
             this._arKitWrapper.addEventListener(_ARKitWrapper2.default.INIT_EVENT, this._handleARKitInit.bind(this));
             this._arKitWrapper.addEventListener(_ARKitWrapper2.default.WATCH_EVENT, this._handleARKitUpdate.bind(this));
             this._arKitWrapper.addEventListener(_ARKitWrapper2.default.WINDOW_RESIZE_EVENT, this._handleARKitWindowResize.bind(this));
+            this._arKitWrapper.addEventListener(_ARKitWrapper2.default.ON_ERROR, this._handleOnError.bind(this));
+            this._arKitWrapper.addEventListener(_ARKitWrapper2.default.AR_TRACKING_CHANGED, this._handleArTrackingChanged.bind(this));
             this._arKitWrapper.waitForInit().then(function () {
               _this2._arKitWrapper.watch();
             });
@@ -6146,6 +6150,25 @@ var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbo
       value: function _handleARKitWindowResize(ev) {
         this.baseLayer.framebufferWidth = ev.detail.width;
         this.baseLayer.framebufferHeight = ev.detail.height;
+      }
+    }, {
+      key: '_handleOnError',
+      value: function _handleOnError(ev) {
+        //"domain": "error domain",
+        //"code": 1234,
+        //"message": "error message"
+        // Ex: > {code: 3, message: "error.localizedDescription", domain: "error.domain"}
+      }
+    }, {
+      key: '_handleArTrackingChanged',
+      value: function _handleArTrackingChanged(ev) {
+        // ev.detail values
+        // #define WEB_AR_TRACKING_STATE_NORMAL               @"ar_tracking_normal"
+        // #define WEB_AR_TRACKING_STATE_LIMITED              @"ar_tracking_limited"
+        // #define WEB_AR_TRACKING_STATE_LIMITED_INITIALIZING @"ar_tracking_limited_initializing"
+        // #define WEB_AR_TRACKING_STATE_LIMITED_MOTION       @"ar_tracking_limited_excessive_motion"
+        // #define WEB_AR_TRACKING_STATE_LIMITED_FEATURES     @"ar_tracking_limited_insufficient_features"
+        // #define WEB_AR_TRACKING_STATE_NOT_AVAILABLE        @"ar_tracking_not_available"
       }
     }, {
       key: '_createSession',
@@ -11474,54 +11497,13 @@ AFRAME.registerSystem('xr', {
       this.renderer.xr.endSession();
     };
     sceneEl.enterVR = function (fromExternal) {
-      if (!this.renderer.xr.sessionActive && self.lastVRDisplay) {
-        this.renderer.xr.startPresenting();
-      } else {
-        sceneEl._enterVR(fromExternal);
-      }
+      this.renderer.xr.dispatchEvent({ type: 'sessionStarted', session: this.renderer.xr.session });
+      sceneEl._enterVR(fromExternal);
     };
     sceneEl.exitVR = function () {
-      if (this.renderer.xr.sessionActive) {
-        this.renderer.xr.endSession();
-      } else {
-        sceneEl._exitVR();
-      }
+      this.renderer.xr.dispatchEvent({ type: 'sessionEnded', session: this.renderer.xr.session });
+      sceneEl._exitVR();
     };
-    sceneEl.resize = function () {
-      if (this.renderer.xr && !this.renderer.xr.sessionActive) {
-        // Update camera.
-        var camera = this.camera;
-        var size = {
-          width: window.innerWidth,
-          height: window.innerHeight
-        };
-        camera.aspect = size.width / size.height;
-        camera.updateProjectionMatrix();
-      }
-    };
-    sceneEl.render = function () {
-      var delta = this.clock.getDelta() * 1000;
-      var renderer = this.renderer;
-      this.time = this.clock.elapsedTime * 1000;
-
-      if (this.isPlaying) {
-        this.tick(this.time, delta);
-      }
-      renderer.animate(this.render.bind(this));
-      if (this.renderer.xr && (!this.renderer.xr.session || this.renderer.xr.session && !this.renderer.xr.sessionActive)) {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.render(this.object3D, this.camera, this.renderTarget);
-      }
-      if (this.isPlaying) {
-        this.tock(this.time, delta);
-      }
-    };
-
-    this.posePosition = new THREE.Vector3();
-    this.poseQuaternion = new THREE.Quaternion();
-    this.poseEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-    this.poseRotation = new THREE.Vector3();
-    this.poseIsLost = true;
 
     this.activeRealityType = 'magicWindow';
 
@@ -11535,9 +11517,6 @@ AFRAME.registerSystem('xr', {
   },
 
   cameraActivated: function cameraActivated() {
-    // this.defaultPosition = new THREE.Vector3(0, 0, 0);
-    // this.el.camera.parent.parent.el.setAttribute('position', this.defaultPosition);
-
     var self = this;
     this.el.emit('realityChanged', 'magicWindow');
     THREE.WebXRUtils.getDisplays().then(self.initXR.bind(self));
@@ -11557,9 +11536,6 @@ AFRAME.registerSystem('xr', {
 
     this.el.emit('xrInitialized');
 
-    // To show camera on iOS devices
-    document.documentElement.style.backgroundColor = 'transparent';
-    document.body.style.backgroundColor = 'transparent';
     var options = {
       // Flag to start AR if is the unique display available.
       AR_AUTOSTART: this.data.arAutostart // Default: true
@@ -11597,13 +11573,25 @@ AFRAME.registerSystem('xr', {
     }
   },
   sessionStarted: function sessionStarted(data) {
-    this.activeRealityType = data.session.realityType;
-    this.el.emit('realityChanged', this.activeRealityType);
+    if (data.session && data.session.realityType) {
+      this.activeRealityType = data.session.realityType;
+      this.el.emit('realityChanged', this.activeRealityType);
+      if (this.activeRealityType === 'ar') {
+        // To show camera on iOS devices
+        document.documentElement.style.backgroundColor = 'transparent';
+        document.body.style.backgroundColor = 'transparent';
+      }
+    }
   },
 
   sessionEnded: function sessionEnded(data) {
     this.activeRealityType = 'magicWindow';
     this.el.emit('realityChanged', this.activeRealityType);
+    if (this.activeRealityType === 'ar') {
+      // To show camera on iOS devices
+      document.documentElement.style.backgroundColor = '';
+      document.body.style.backgroundColor = '';
+    }
   },
 
   poseLost: function poseLost() {

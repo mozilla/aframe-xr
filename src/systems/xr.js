@@ -33,51 +33,13 @@ AFRAME.registerSystem('xr', {
       this.renderer.xr.endSession();
     };
     sceneEl.enterVR = function (fromExternal) {
-      if (!this.renderer.xr.sessionActive && self.lastVRDisplay) {
-        this.renderer.xr.startPresenting();
-      } else {
-        sceneEl._enterVR(fromExternal);
-      }
+      this.renderer.xr.dispatchEvent({ type: 'sessionStarted', session: this.renderer.xr.session });
+      sceneEl._enterVR(fromExternal);
     };
     sceneEl.exitVR = function () {
-      if (this.renderer.xr.sessionActive) {
-        this.renderer.xr.endSession();
-      } else {
-        sceneEl._exitVR();
-      }
- 
+      this.renderer.xr.dispatchEvent({ type: 'sessionEnded', session: this.renderer.xr.session });
+      sceneEl._exitVR();
     };
-    sceneEl.resize = function () {
-      if (this.renderer.xr && !this.renderer.xr.sessionActive) {
-        // Update camera.
-        var camera = this.camera;
-        var size = {
-          width: window.innerWidth,
-          height: window.innerHeight
-        };
-        camera.aspect = size.width / size.height;
-        camera.updateProjectionMatrix();
-      }
-    };
-    sceneEl.render = function () {
-      var delta = this.clock.getDelta() * 1000;
-      var renderer = this.renderer;
-      this.time = this.clock.elapsedTime * 1000;
-
-      if (this.isPlaying) { this.tick(this.time, delta); }
-      renderer.animate(this.render.bind(this));
-      if (this.renderer.xr && (!this.renderer.xr.session ||this.renderer.xr.session && !this.renderer.xr.sessionActive)) {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.render(this.object3D, this.camera, this.renderTarget);
-      }
-      if (this.isPlaying) { this.tock(this.time, delta); }
-    };
-
-    this.posePosition = new THREE.Vector3();
-    this.poseQuaternion = new THREE.Quaternion();
-    this.poseEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-    this.poseRotation = new THREE.Vector3();
-    this.poseIsLost = true;
 
     this.activeRealityType = 'magicWindow';
 
@@ -91,9 +53,6 @@ AFRAME.registerSystem('xr', {
   },
 
   cameraActivated: function () {
-    // this.defaultPosition = new THREE.Vector3(0, 0, 0);
-    // this.el.camera.parent.parent.el.setAttribute('position', this.defaultPosition);
-
     var self = this;
     this.el.emit('realityChanged', 'magicWindow');
     THREE.WebXRUtils.getDisplays().then(self.initXR.bind(self));
@@ -113,9 +72,6 @@ AFRAME.registerSystem('xr', {
 
     this.el.emit('xrInitialized');
 
-    // To show camera on iOS devices
-    document.documentElement.style.backgroundColor = 'transparent';
-    document.body.style.backgroundColor = 'transparent';
     var options = {
       // Flag to start AR if is the unique display available.
       AR_AUTOSTART: this.data.arAutostart // Default: true
@@ -153,13 +109,25 @@ AFRAME.registerSystem('xr', {
     }
   },
   sessionStarted: function (data) {
-    this.activeRealityType = data.session.realityType;
-    this.el.emit('realityChanged', this.activeRealityType);
+    if (data.session && data.session.realityType) {
+      this.activeRealityType = data.session.realityType;
+      this.el.emit('realityChanged', this.activeRealityType);
+      if (this.activeRealityType === 'ar') {
+        // To show camera on iOS devices
+        document.documentElement.style.backgroundColor = 'transparent';
+        document.body.style.backgroundColor = 'transparent';
+      }
+    }
   },
 
   sessionEnded: function (data) {
     this.activeRealityType = 'magicWindow';
     this.el.emit('realityChanged', this.activeRealityType);
+    if (this.activeRealityType === 'ar') {
+      // To show camera on iOS devices
+      document.documentElement.style.backgroundColor = '';
+      document.body.style.backgroundColor = '';
+    }
   },
 
   poseLost: function () {
