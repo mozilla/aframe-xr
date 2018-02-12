@@ -87,3 +87,5 @@ Then require and use.
 require('aframe');
 require('aframe-xr');
 ```
+
+Please note that for now, this component must be used with it's own modified version of Three.js and A-Frame. Make sure to use the A-Frame and Three.js build in `vendor/aframe-master.js`, not the official version of the A-Frame.
