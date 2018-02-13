@@ -87,3 +87,18 @@ Then require and use.
 require('aframe');
 require('aframe-xr');
 ```
+
+Until A-Frame 0.8.0 is released, make sure to reference the master version of A-Frame in `package.json`:
+
+```json
+ "dependencies": {
+    "aframe": "github:aframevr/aframe#master"
+  }
+ ```
+ 
+ Or reference the A-Frame included with `aframe-xr` directly:
+ 
+ ```js
+require('aframe-xr/vendor/aframe-master.js');
+require('aframe-xr');
+```
