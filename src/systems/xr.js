@@ -41,6 +41,12 @@ AFRAME.registerSystem('xr', {
       sceneEl._exitVR();
     };
 
+    sceneEl.render = function () {
+      if (self.activeRealityType !== 'ar') {
+        sceneEl._render();
+      }
+    };
+
     this.activeRealityType = 'magicWindow';
 
     if (this.el.camera) {

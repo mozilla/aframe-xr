@@ -16,7 +16,7 @@ AFRAME.registerComponent('reticle', {
   onTouchStart: function (ev) {
     if (!ev.touches || ev.touches.length === 0) {
       console.error('No touches on touch event', ev);
-      return
+      return;
     }
     this.tapData = [
       ev.touches[0].clientX / window.innerWidth,

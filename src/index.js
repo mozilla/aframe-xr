@@ -1,4 +1,4 @@
-require('three.xr.js');
+// require('three.xr.js');
 
 require('./systems/xr.js');
 
