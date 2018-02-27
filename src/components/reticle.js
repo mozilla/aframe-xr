@@ -22,7 +22,7 @@ AFRAME.registerComponent('reticle', {
       ev.touches[0].clientX / window.innerWidth,
       ev.touches[0].clientY / window.innerHeight
     ];
-    this.el.emit('touched');
+    this.el.emit('touched', ev);
   },
 
   updateFrame: function (data) {
@@ -35,6 +35,7 @@ AFRAME.registerComponent('reticle', {
     if (hit && hit.length > 0) {
       if (this.el.getAttribute('visible') === false) {
         this.el.setAttribute('visible', true);
+        this.el.emit('planeDetected');
         window.addEventListener('touchstart', this.onTouchStart);
       }
       model.fromArray(hit[0].modelMatrix);

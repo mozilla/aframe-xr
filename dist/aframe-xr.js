@@ -164,8 +164,6 @@ AFRAME.registerSystem('xr', {
       }
     }
 
-    this.el.emit('xrInitialized');
-
     var options = {
       // Flag to start AR if is the unique display available.
       AR_AUTOSTART: this.data.arAutostart // Default: true
@@ -185,6 +183,8 @@ AFRAME.registerSystem('xr', {
         this.addEnterButtons(displays);
       }
     }
+
+    this.el.emit('xrInitialized');
   },
 
   // NOW it only supports one VR and one AR display
@@ -550,7 +550,7 @@ AFRAME.registerComponent('reticle', {
       return;
     }
     this.tapData = [ev.touches[0].clientX / window.innerWidth, ev.touches[0].clientY / window.innerHeight];
-    this.el.emit('touched');
+    this.el.emit('touched', ev);
   },
 
   updateFrame: function updateFrame(data) {
@@ -563,6 +563,7 @@ AFRAME.registerComponent('reticle', {
     if (hit && hit.length > 0) {
       if (this.el.getAttribute('visible') === false) {
         this.el.setAttribute('visible', true);
+        this.el.emit('planeDetected');
         window.addEventListener('touchstart', this.onTouchStart);
       }
       model.fromArray(hit[0].modelMatrix);

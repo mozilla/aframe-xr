@@ -76,8 +76,6 @@ AFRAME.registerSystem('xr', {
       }
     }
 
-    this.el.emit('xrInitialized');
-
     var options = {
       // Flag to start AR if is the unique display available.
       AR_AUTOSTART: this.data.arAutostart // Default: true
@@ -97,6 +95,8 @@ AFRAME.registerSystem('xr', {
         this.addEnterButtons(displays);
       }
     }
+
+    this.el.emit('xrInitialized');
   },
 
   // NOW it only supports one VR and one AR display
