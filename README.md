@@ -67,9 +67,10 @@ Based on the [vr-mode-ui](https://github.com/aframevr/aframe/blob/v0.7.0/src/com
 ## Usage
 
 ### Browser
-Include three.xr.js &amp; aframe-xr after A-frame (For now, we are using master version. Soon an official published version):
+Include A-Frame (for now, we are using master version - soon an official published version), followed by `three.xr.js` &amp; `aframe-xr`:
 ```html
-<script src="../../../vendor/aframe-master.js"></script>
+<script src="aframe-master.js"></script>
+<script src="three.xr.js"></script>
 <script src='aframe-xr.js'></script>
 ```
 
