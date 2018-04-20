@@ -9,6 +9,9 @@ AFRAME.registerComponent('reticle', {
     this.el.setAttribute('rotation', {
       x: -90
     });
+    this.el.object3D.updateMatrix()
+    this.extraRotation = new THREE.Quaternion()
+    this.extraRotation.setFromRotationMatrix(this.el.object3D.matrix);
 
     this.tapData = [0.5, 0.5];
     this.onTouchStart = this.onTouchStart.bind(this);
@@ -45,6 +48,8 @@ AFRAME.registerComponent('reticle', {
         y: tempPos.y,
         z: tempPos.z
       })
+      tempQuat.multiply(this.extraRotation)
+      this.el.object3D.quaternion.copy(tempQuat);
     }
   }
 });
