@@ -4,7 +4,7 @@
 
 AFRAME.registerComponent('xranchor', {
   schema: {
-    positionOffset: { default: {x: 0, y: 0, z: 0} }
+    positionOffset: { default: 'vec3' }
   },
 
   init: function () {
