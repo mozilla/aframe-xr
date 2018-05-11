@@ -172,5 +172,12 @@ AFRAME.registerSystem('xr', {
         element.setAttribute('light', 'intensity', element.getObject3D('light').originalIntensity * frame.lightEstimate);
       }
     }
+    if (this.activeRealityType === 'ar') {
+      this.sceneEl.delta = this.sceneEl.clock.getDelta() * 1000;
+      this.sceneEl.time = this.sceneEl.clock.elapsedTime * 1000;
+      if (this.sceneEl.isPlaying) {
+        this.sceneEl.tick(this.sceneEl.time, this.sceneEl.delta);
+      }
+    }
   }
 });
