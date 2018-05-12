@@ -25,6 +25,9 @@ AFRAME.registerSystem('xr', {
     sceneEl._resize = sceneEl.resize;
     sceneEl._render = sceneEl.render;
 
+    // The canvas needs to be above <a-scene> for raycaster click to work.
+    sceneEl.canvas.style.zIndex = 1;
+
     var self = this;
     sceneEl.enterAR = function () {
       this.renderer.xr.startSession(self.lastARDisplay, 'ar', true);
