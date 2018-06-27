@@ -25,6 +25,9 @@ AFRAME.registerSystem('xr', {
     sceneEl._resize = sceneEl.resize;
     sceneEl._render = sceneEl.render;
 
+    // The canvas needs to be above <a-scene> for raycaster click to work.
+    sceneEl.canvas.style.zIndex = 1;
+
     var self = this;
     sceneEl.enterAR = function () {
       this.renderer.xr.startSession(self.lastARDisplay, 'ar', true);
@@ -119,6 +122,12 @@ AFRAME.registerSystem('xr', {
       this.activeRealityType = data.session.realityType;
       this.el.emit('realityChanged', this.activeRealityType);
       if (this.activeRealityType === 'ar') {
+        // Save camera look-controls enabled, and turn off for AR.
+        var lookControls = this.sceneEl.camera.el.getAttribute('look-controls');
+        this.wasLookControlsEnabled = lookControls ? lookControls.enabled : false;
+        if (this.wasLookControlsEnabled) {
+          this.sceneEl.camera.el.setAttribute('look-controls', 'enabled', false);
+        }
         // To show camera on iOS devices
         document.documentElement.style.backgroundColor = 'transparent';
         document.body.style.backgroundColor = 'transparent';
@@ -127,13 +136,17 @@ AFRAME.registerSystem('xr', {
   },
 
   sessionEnded: function (data) {
-    this.activeRealityType = 'magicWindow';
-    this.el.emit('realityChanged', this.activeRealityType);
     if (this.activeRealityType === 'ar') {
-      // To show camera on iOS devices
+      // Restore camera look-controls enabled
+      if (this.wasLookControlsEnabled) {
+        this.sceneEl.camera.el.setAttribute('look-controls', 'enabled', true);
+      }
+      // Remove the transparency set in sessionStarted on iOS devices
       document.documentElement.style.backgroundColor = '';
       document.body.style.backgroundColor = '';
     }
+    this.activeRealityType = 'magicWindow';
+    this.el.emit('realityChanged', this.activeRealityType);
   },
 
   poseLost: function () {
@@ -170,6 +183,13 @@ AFRAME.registerSystem('xr', {
         }
         this.lightEstimate = frame.lightEstimate;
         element.setAttribute('light', 'intensity', element.getObject3D('light').originalIntensity * frame.lightEstimate);
+      }
+    }
+    if (this.activeRealityType === 'ar') {
+      this.sceneEl.delta = this.sceneEl.clock.getDelta() * 1000;
+      this.sceneEl.time = this.sceneEl.clock.elapsedTime * 1000;
+      if (this.sceneEl.isPlaying) {
+        this.sceneEl.tick(this.sceneEl.time, this.sceneEl.delta);
       }
     }
   }
