@@ -3,6 +3,10 @@
 // will be set, containing a WebXR XRAnchorOffset
 
 AFRAME.registerComponent('xranchor', {
+  schema: {
+    positionOffset: { default: 'vec3' }
+  },
+
   init: function () {
     this.anchorMatrix = new THREE.Matrix4();
     this.positionVec3 = new THREE.Vector3();
@@ -31,9 +35,9 @@ AFRAME.registerComponent('xranchor', {
     var positionVec3 = this.positionVec3.setFromMatrixPosition(anchorMatrix);
 
     this.el.setAttribute('position', {
-      x: positionVec3.x,
-      y: positionVec3.y,
-      z: positionVec3.z
+      x: positionVec3.x + this.data.positionOffset.x,
+      y: positionVec3.y + this.data.positionOffset.y,
+      z: positionVec3.z + this.data.positionOffset.z
     });
 
     var rotationQuat = this.rotationQuat.setFromRotationMatrix(anchorMatrix);
