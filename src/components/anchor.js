@@ -7,7 +7,6 @@ AFRAME.registerComponent('xranchor', {
     this.anchorMatrix = new THREE.Matrix4();
     this.positionVec3 = new THREE.Vector3();
     this.rotationQuat = new THREE.Quaternion();
-    this.rotationVec3 = new THREE.Vector3();
     this.el.sceneEl.addEventListener(
       'updateFrame',
       this.updateFrame.bind(this)
@@ -29,20 +28,9 @@ AFRAME.registerComponent('xranchor', {
       anchorOffset.getOffsetTransform(anchor.coordinateSystem)
     );
     var positionVec3 = this.positionVec3.setFromMatrixPosition(anchorMatrix);
-
-    this.el.setAttribute('position', {
-      x: positionVec3.x,
-      y: positionVec3.y,
-      z: positionVec3.z
-    });
+    this.el.object3D.position.copy(positionVec3);
 
     var rotationQuat = this.rotationQuat.setFromRotationMatrix(anchorMatrix);
-    var rotationVec3 = this.rotationVec3.applyQuaternion(rotationQuat);
-
-    this.el.setAttribute('rotation', {
-      x: rotationVec3.x,
-      y: rotationVec3.y,
-      z: rotationVec3.z
-    });
+    this.el.object3D.quaternion.copy(rotationQuat);
   }
 });
